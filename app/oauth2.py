@@ -40,9 +40,8 @@ def verify_access_token(token: Annotated[str, Depends(oauth2_scheme)]):
         raise credentials_exception
     return token_data
 
-def get_current_active_user(token_data: Annotated[TokenData, Depends(verify_access_token)], 
-                            db: Session = Depends(get_db)):
-    if not token_data.email:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Not Authenticated")
-    res = db.scalar(select(User).where(User.email == token_data.email))
-    return res
+def get_current_active_user(token_data: Annotated[TokenData, Depends(verify_access_token)], db: Session = Depends(get_db)):
+    user = db.scalar(select(User).where(User.email == token_data.email))
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid Credentials", headers={"WWW-Authenticate": "Bearer"})
+    return user

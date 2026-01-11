@@ -1,0 +1,64 @@
+name: Build and Deploy code
+
+on: [push, pull_request]
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fastapi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d fastapi"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+        DATABASE_HOSTNAME: localhost
+        DATABASE_PORT: "5432"
+        DATABASE_NAME: fastapi
+        DATABASE_USERNAME: postgres
+        DATABASE_PASSWORD: postgres
+        DATABASE_DRIVER: psycopg
+        DATABASE_DIALECT: postgresql
+        SECRET_KEY: test_secret
+        ALGORITHM: HS256
+        ACCESS_TOKEN_EXPIRATION_MINUTES: "30"
+        MAX_LOGIN_ATTEMPTS: "5"
+        LOGIN_ATTEMPT_COOLDOWN_WINDOW: "10"    
+
+    steps:
+      - name: Say hello to World
+        run: echo "Hello World"      
+        
+      - name: Checkout repository  
+        uses: actions/checkout@v4
+
+      - name: Install python version 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Update Pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Wait for Postgres before migrating
+        run: sleep 5
+
+      - name: Alembic Migration
+        run: alembic upgrade head
+
+      - name: Run tests with pytest
+        run: |
+          pip install pytest
+          pytest -q

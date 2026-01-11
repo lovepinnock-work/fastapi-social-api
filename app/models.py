@@ -1,5 +1,5 @@
+from sqlalchemy import TIMESTAMP, ForeignKey, text
 from typing import Optional
-from sqlalchemy import TIMESTAMP, Column, Integer, String, Boolean, ForeignKeyConstraint, ForeignKey, text
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from datetime import datetime
@@ -33,3 +33,9 @@ class Vote(Base):
                                          primary_key=True, nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("Users.id", ondelete="CASCADE"),
                                          primary_key=True, nullable=False)
+    
+class Attempts(Base):
+    __tablename__ = 'login_attempts'
+    user_id: Mapped[str] = mapped_column(primary_key=True, nullable=False)
+    attempts: Mapped[int] = mapped_column(nullable=False)
+    cooldown: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
