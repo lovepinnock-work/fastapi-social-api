@@ -1,9 +1,9 @@
-name: Build and Deploy code
+name: CI
 
 on: [push, pull_request]
 
 jobs:
-  Build:
+  test_application:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -35,9 +35,6 @@ jobs:
         LOGIN_ATTEMPT_COOLDOWN_WINDOW: "10"    
 
     steps:
-      - name: Say hello to World
-        run: echo "Hello World"      
-        
       - name: Checkout repository  
         uses: actions/checkout@v4
 
@@ -46,19 +43,28 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Update Pip
-        run: python -m pip install --upgrade pip
+      - name: Update Pip and Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
 
-      - name: Install Dependencies
-        run: pip install -r requirements.txt
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Create test database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "CREATE DATABASE fastapi_test;"
 
       - name: Wait for Postgres before migrating
-        run: sleep 5
-
-      - name: Alembic Migration
+        run:  for i in {1..20}; do
+                pg_isready -h localhost -p 5432 -U postgres && break
+                sleep 1
+              done
+      - name: Run migration for test database
+        env:
+          DATABASE_NAME: fastapi_test
         run: alembic upgrade head
 
-      - name: Run tests with pytest
-        run: |
-          pip install pytest
-          pytest -q
+      - name: Run tests with pytest against test database
+        run: pytest -q

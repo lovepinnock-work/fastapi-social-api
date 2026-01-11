@@ -1,4 +1,3 @@
-```md
 ## Load and Performance Testing
 
 Performance tests were executed using **k6** against a FastAPI + PostgreSQL backend running in Docker.
